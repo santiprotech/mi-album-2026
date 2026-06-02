@@ -1,0 +1,17 @@
+{
+  "name": "Mi Álbum de Figuritas 2026",
+  "short_name": "Álbum 2026",
+  "description": "Réplica del álbum de figuritas 2026",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5323/5323919.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Figuritas Replica - Mundial 2026</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a; --card-bg: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8;
+            --primary: #6366f1; --missing-bg: #334155; --missing-text: #64748b;
+            --owned-bg: #22c55e; --owned-text: #ffffff; --repeated-bg: #eab308; --repeated-text: #0f172a;
+        }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; padding-top: 155px; -webkit-user-select: none; user-select: none; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; background-color: #111827; z-index: 1000; padding: 12px; border-bottom: 1px solid #1f2937; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-bottom: 12px; }
+        .stat-box { background: var(--card-bg); padding: 6px; border-radius: 8px; border: 1px solid #334155; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .chart-container { position: relative; width: 44px; height: 44px; }
+        .chart-container svg { transform: rotate(-90deg); }
+        .chart-bg { fill: none; stroke: #334155; stroke-width: 4; }
+        .chart-progress { fill: none; stroke: #38bdf8; stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.3s ease; }
+        .chart-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.75rem; font-weight: 800; color: #38bdf8; }
+        .stat-val { font-size: 1.1rem; font-weight: 800; color: var(--text-main); }
+        .stat-val.tengo { color: #4ade80; } .stat-val.falta { color: #f87171; } .stat-val.rep { color: #facc15; }
+        .stat-lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+        .filter-bar { display: flex; gap: 6px; }
+        .filter-btn { flex: 1; background: #334155; border: none; color: var(--text-muted); padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+        .filter-btn.active { background: var(--primary); color: white; }
+        .content { padding: 12px; }
+        .section-title { background: linear-gradient(90deg, #312e81, #1e1b4b); color: #e2e8f0; padding: 10px 12px; border-radius: 6px; font-size: 0.95rem; font-weight: 700; margin: 15px 0 10px 0; border-left: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: center; }
+        .section-title.clickable { cursor: pointer; }
+        .section-title .arrow { font-size: 0.75rem; color: var(--text-muted); }
+        .group-content.collapsed { display: none; }
+        .pais-card { background: var(--card-bg); border-radius: 10px; padding: 12px; margin-bottom: 12px; border: 1px solid #334155; }
+        .pais-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 6px; }
+        .pais-info { display: flex; align-items: center; gap: 8px; }
+        .pais-nombre { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+        .flag-icon { font-size: 1.2rem; line-height: 1; display: inline-block; vertical-align: middle; }
+        .pais-contador { font-size: 0.75rem; color: var(--text-muted); background: #0f172a; padding: 2px 6px; border-radius: 8px; }
+        .btn-reset { background: transparent; border: none; color: #ef4444; font-size: 0.75rem; cursor: pointer; font-weight: 600; padding: 4px; }
+        .grid-estampas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .estampa-btn { aspect-ratio: 1; border: none; border-radius: 8px; background-color: var(--missing-bg); color: var(--missing-text); font-weight: 700; font-size: 0.95rem; position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+        .estampa-btn.owned { background-color: var(--owned-bg); color: var(--owned-text); }
+        .estampa-btn.repeated { background-color: var(--repeated-bg); color: var(--repeated-text); }
+        .rep-badge { position: absolute; top: 2px; right: 4px; font-size: 0.65rem; font-weight: 900; background: #ffffff; color: #000000; padding: 1px 3px; border-radius: 4px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="fixed-header">
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="chart-container">
+                    <svg width="44" height="44" viewBox="0 0 44 44"><circle class="chart-bg" cx="22" cy="22" r="18" /><circle class="chart-progress" id="chart-ring" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="113.1" /></svg>
+                    <div class="chart-text" id="stat-pct">0%</div>
+                </div>
+                <div class="stat-lbl" style="margin-top: 5px;">Progreso</div>
+            </div>
+            <div class="stat-box"><div class="stat-val tengo" id="stat-tengo">0</div><div class="stat-lbl">Tengo</div></div>
+            <div class="stat-box"><div class="stat-val falta" id="stat-falta">0</div><div class="stat-lbl">Faltan</div></div>
+            <div class="stat-box"><div class="stat-val rep" id="stat-rep">0</div><div class="stat-lbl">Repes</div></div>
+        </div>
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="cambiarFiltro('todos', this)">VER TODO</button>
+            <button class="filter-btn" onclick="cambiarFiltro('faltantes', this)">FALTANTES</button>
+            <button class="filter-btn" onclick="cambiarFiltro('repetidas', this)">REPETIDAS</button>
+        </div>
+    </div>
+    <div class="content" id="album-container"></div>
+    
+    <script src="motor.js"></script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('¡App lista para usar sin internet!'))
+                    .catch(err => console.log('Error de App:', err));
+            });
+        }
+    </script>
+</body>
+</html>
