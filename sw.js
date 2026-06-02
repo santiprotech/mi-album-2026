@@ -1,5 +1,5 @@
-// Avanzamos a la versión v10 para inyectar la compresión de códigos de sincronización
-const CACHE_NAME = 'album-v10';
+// Avanzamos a la versión v8 para inyectar la calculadora de costo restante
+const CACHE_NAME = 'album-v8';
 const ARCHIVOS = [
   './',
   './index.html',

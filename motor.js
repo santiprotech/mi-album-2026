@@ -1,4 +1,4 @@
-// motor.js - Código unificado de UI, Lógica, Temas, Buscador, Escáner, Infografías, Intercambio y Sync Comprimido
+// motor.js - Código unificado de UI, Lógica, Temas, Buscador, Escáner, Infografías en Canvas y Modo Intercambio
 
 const estructuraCruda = [
     { g: "FWC", t: "especial_fwc", p: ["FWC"], b: ["🏆"] },
@@ -145,6 +145,7 @@ function cambiarFiltro(tipo, elemento) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
     elemento.classList.add('active'); 
     
+    // El escáner solo se muestra en la pestaña de repetidas
     const scannerWrapper = document.getElementById('scanner-container-wrapper');
     if (scannerWrapper && !modoIntercambioActivo) {
         if (tipo === 'repetidas') scannerWrapper.classList.remove('hidden');
@@ -177,6 +178,7 @@ function actualizarTodo() {
             const card = document.querySelector(`[data-pais="${p.nombre}"]`);
             if (card) {
                 const coincideBusqueda = p.nombre.toLowerCase().includes(textoBusqueda);
+                
                 if (!coincideBusqueda || (vCount === 0 && filtroActual !== 'todos')) { 
                     card.classList.add('hidden'); 
                     paisesOcultosEnSeccion++; 
@@ -263,8 +265,9 @@ function agruparNumeros(numerosRaw, esFWC) {
     const formatNum = (n) => (esFWC && n < 10) ? '0' + n : n;
 
     for (let i = 1; i < numerosRaw.length; i++) {
-        if (numerosRaw[i] === fin + 1) { fin = numerosRaw[i]; } 
-        else {
+        if (numerosRaw[i] === fin + 1) {
+            fin = numerosRaw[i];
+        } else {
             if (inicio === fin) rangos.push(`${formatNum(inicio)}`);
             else rangos.push(`${formatNum(inicio)}-${formatNum(fin)}`);
             inicio = numerosRaw[i]; fin = numerosRaw[i];
@@ -277,6 +280,7 @@ function agruparNumeros(numerosRaw, esFWC) {
 
 function generarInfografia(tipo) {
     toggleSidebar();
+    
     const listaFinal = [];
     estructuraCruda.forEach(grupo => {
         grupo.p.forEach(paisNombre => {
@@ -348,9 +352,11 @@ function descargarImagen() {
     link.href = globalCanvasUrl; link.click();
 }
 
-// --- MODO DÍA DE INTERCAMBIO ---
+// --- NUEVO: MODO DÍA DE INTERCAMBIO ---
 function toggleModoIntercambio() {
     modoIntercambioActivo = !modoIntercambioActivo;
+    
+    // Ocultar/Mostrar UI Principal
     document.getElementById('album-container').classList.toggle('hidden', modoIntercambioActivo);
     document.querySelector('.controls-row').classList.toggle('hidden', modoIntercambioActivo);
     document.querySelector('.filter-bar').classList.toggle('hidden', modoIntercambioActivo);
@@ -376,6 +382,7 @@ function toggleModoIntercambio() {
 function renderizarGrillaIntercambio() {
     const grid = document.getElementById('exchange-grid');
     grid.innerHTML = '';
+    
     const repetidas = [];
     estructuraCruda.forEach(grupo => {
         grupo.p.forEach(paisNombre => {
@@ -404,145 +411,70 @@ function renderizarGrillaIntercambio() {
         const btn = document.createElement('button');
         btn.className = 'estampa-btn repeated';
         btn.style.height = '80px';
-        btn.style.display = 'flex'; btn.style.flexDirection = 'column'; btn.style.justifyContent = 'center'; btn.style.alignItems = 'center';
-        btn.innerHTML = `<span style="font-size: 0.8rem; color: #000; opacity: 0.6; font-weight: 800; letter-spacing: 1px;">${item.cod}</span><span style="font-size: 1.6rem; font-weight: 900; line-height: 1.1;">${item.num}</span><span class="rep-badge" style="font-size: 0.85rem; padding: 2px 5px; bottom: 6px; right: 6px; top: auto;">+${item.qty - 1}</span>`;
+        btn.style.display = 'flex';
+        btn.style.flexDirection = 'column';
+        btn.style.justifyContent = 'center';
+        btn.style.alignItems = 'center';
+        
+        btn.innerHTML = `
+            <span style="font-size: 0.8rem; color: #000; opacity: 0.6; font-weight: 800; letter-spacing: 1px;">${item.cod}</span>
+            <span style="font-size: 1.6rem; font-weight: 900; line-height: 1.1;">${item.num}</span>
+            <span class="rep-badge" style="font-size: 0.85rem; padding: 2px 5px; bottom: 6px; right: 6px; top: auto;">+${item.qty - 1}</span>
+        `;
+        
         btn.onclick = () => {
             if (coleccion[item.key] > 1) {
                 coleccion[item.key]--;
                 localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion));
+                
                 if (coleccion[item.key] === 1) {
                     btn.remove();
-                    if (grid.children.length === 0) grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px; font-weight: bold; background: var(--card-bg); border-radius: 8px;">¡Te quedaste sin repetidas!</div>';
+                    if (grid.children.length === 0) {
+                        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px; font-weight: bold; background: var(--card-bg); border-radius: 8px;">¡Te quedaste sin repetidas!</div>';
+                    }
                 } else {
                     btn.querySelector('.rep-badge').innerText = `+${coleccion[item.key] - 1}`;
                 }
-                actualizarTodo(); 
+                actualizarTodo(); // Mantiene las estadísticas del header actualizadas en tiempo real
             }
         };
         grid.appendChild(btn);
     });
 }
 
-// --- CALCULADORA DE COSTO RESTANTE ---
+// --- NUEVO: CALCULADORA DE COSTO RESTANTE ---
 function calcularCostoFaltante() {
     toggleSidebar();
-    let faltantesNormales = 0; const COSTO_POR_ESTAMPA = 3.57;
+    
+    let faltantesNormales = 0;
+    const COSTO_POR_ESTAMPA = 3.57;
+
     estructuraCruda.forEach(grupo => {
         if (grupo.t === 'especial_coca') return;
+        
         grupo.p.forEach(paisNombre => {
             let inicio = 1, fin = 20;
             if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; }
+            
             for (let i = inicio; i <= fin; i++) {
-                if ((coleccion[`${paisNombre}-E${i}`] || 0) === 0) faltantesNormales++;
+                const key = `${paisNombre}-E${i}`;
+                const cantidad = coleccion[key] || 0;
+                
+                if (cantidad === 0) {
+                    faltantesNormales++;
+                }
             }
         });
     });
 
-    if (faltantesNormales === 0) { alert("¡Felicidades! Ya tienes todas las estampas normales."); return; }
-    alert(`📊 INFORME DE ÁLBUM:\n\nTe faltan ${faltantesNormales} estampas (sin contar Coca-Cola).\n\n💸 Dinero estimado necesario: $${(faltantesNormales * COSTO_POR_ESTAMPA).toFixed(2)} MXN.`);
-}
-
-// --- DICCIONARIO DE COMPRESIÓN PARA SINCRONIZACIÓN ---
-const mapaExport = {};
-const mapaImport = {};
-let paisIdCounter = 0;
-// Creamos un ID corto (ej. "a", "b", "c") para cada país
-estructuraCruda.forEach(grupo => {
-    grupo.p.forEach(paisNombre => {
-        const id = paisIdCounter.toString(36); 
-        mapaExport[paisNombre] = id;
-        mapaImport[id] = paisNombre;
-        paisIdCounter++;
-    });
-});
-
-// --- COMPARTIR / SINCRONIZAR DATOS CON COMPRESIÓN ---
-function exportarColeccion() {
-    toggleSidebar();
-    try {
-        const agrupado = {};
-        for (const key in coleccion) {
-            const partes = key.split('-E');
-            if (partes.length === 2) {
-                const pais = partes[0];
-                const num = partes[1];
-                const qty = coleccion[key];
-                const id = mapaExport[pais];
-                
-                if (id !== undefined) {
-                    if (!agrupado[id]) agrupado[id] = [];
-                    // Si tengo 1 sola estampa, guardo solo el número (ej: "5"). Si tengo repetidas, guardo "numero.cantidad" (ej: "5.3")
-                    if (qty === 1) agrupado[id].push(num);
-                    else agrupado[id].push(`${num}.${qty}`);
-                }
-            }
-        }
-        
-        const arrFinal = [];
-        for (const id in agrupado) {
-            // Unimos el ID del país con sus estampas: id:1,2,3.2,4
-            arrFinal.push(`${id}:${agrupado[id].join(',')}`);
-        }
-        
-        // Lo pasamos a Base64 para que siga viéndose como un "código seguro" sin caracteres raros
-        const codigoCorto = btoa(arrFinal.join('-'));
-
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(codigoCorto).then(() => {
-                alert('¡Código COMPACTO copiado al portapapeles!\n\nPégalo en un mensaje de WhatsApp para enviarlo a tu amigo.');
-            }).catch(err => {
-                prompt('Copia este código comprimido manualmente:', codigoCorto);
-            });
-        } else {
-            prompt('Copia este código comprimido manualmente:', codigoCorto);
-        }
-    } catch (e) {
-        alert('Hubo un error al generar el código compacto.');
+    if (faltantesNormales === 0) {
+        alert("¡Felicidades! Ya tienes todas las estampas normales. Solo te falta preocuparte por las de Coca-Cola (si es que aún te faltan).");
+        return;
     }
-}
 
-function importarColeccion() {
-    toggleSidebar();
-    const codigo = prompt('Pega aquí el código que te compartió tu amigo.\n\n⚠️ ¡ATENCIÓN! Al hacer esto, la colección de tu amigo REEMPLAZARÁ tu colección actual.');
+    const costoEstimado = (faltantesNormales * COSTO_POR_ESTAMPA).toFixed(2);
     
-    if (!codigo) return;
-    
-    try {
-        const decodificado = atob(codigo.trim());
-        const nuevaColeccion = {};
-        
-        if (decodificado) {
-            const grupos = decodificado.split('-');
-            grupos.forEach(grupo => {
-                const partes = grupo.split(':');
-                if (partes.length === 2) {
-                    const id = partes[0];
-                    const nums = partes[1].split(',');
-                    const paisNombre = mapaImport[id];
-                    
-                    if (paisNombre) {
-                        nums.forEach(nStr => {
-                            const subPartes = nStr.split('.');
-                            const num = subPartes[0];
-                            const qty = subPartes.length > 1 ? parseInt(subPartes[1], 10) : 1;
-                            nuevaColeccion[`${paisNombre}-E${num}`] = qty;
-                        });
-                    }
-                }
-            });
-        }
-        
-        if (Object.keys(nuevaColeccion).length > 0 || decodificado === "") {
-            coleccion = nuevaColeccion;
-            localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion));
-            actualizarTodo();
-            alert('¡Colección sincronizada con éxito!');
-        } else {
-            throw new Error("Código inválido");
-        }
-    } catch (e) {
-        alert('❌ Código inválido. Asegúrate de copiar el código completo exactamente como te lo enviaron.');
-    }
+    alert(`📊 INFORME DE ÁLBUM:\n\nTe faltan ${faltantesNormales} estampas (sin contar las especiales de Coca-Cola).\n\n💸 Dinero estimado necesario: $${costoEstimado} MXN.`);
 }
 
 inicializarTema();
