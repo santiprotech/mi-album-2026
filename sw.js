@@ -1,4 +1,5 @@
-const CACHE_NAME = 'album-v2';
+// Avanzamos a la versión v10 para inyectar la compresión de códigos de sincronización
+const CACHE_NAME = 'album-v10';
 const ARCHIVOS = [
   './',
   './index.html',
@@ -22,7 +23,7 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Limpieza para borrar la caché vieja de la v1
+// Limpieza para borrar la caché vieja
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys => {

@@ -43,7 +43,7 @@
             }
         }
 
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; padding-top: 200px; -webkit-user-select: none; user-select: none; transition: background-color 0.2s; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; padding-top: 250px; -webkit-user-select: none; user-select: none; transition: background-color 0.2s; }
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; background-color: var(--header-bg); z-index: 1000; padding: 12px; border-bottom: 1px solid var(--border-color); }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-bottom: 12px; }
         .stat-box { background: var(--card-bg); padding: 6px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -56,10 +56,11 @@
         .stat-val.tengo { color: #4ade80; } .stat-val.falta { color: #f87171; } .stat-val.rep { color: #facc15; }
         .stat-lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
         
-        /* Controles de Búsqueda y Apariencia */
+        /* Controles de Búsqueda y Botón de Menú */
         .controls-row { display: flex; gap: 6px; margin-bottom: 12px; }
+        .menu-toggle-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 14px; border-radius: 6px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .search-input { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; outline: none; }
-        .theme-select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer; }
+        .theme-select { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer; width: 100%; margin-top: 5px; }
         
         .filter-bar { display: flex; gap: 6px; }
         .filter-btn { flex: 1; background: var(--missing-bg); border: none; color: var(--text-muted); padding: 8px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
@@ -81,6 +82,21 @@
         .estampa-btn.repeated { background-color: var(--repeated-bg); color: var(--repeated-text); }
         .rep-badge { position: absolute; top: 2px; right: 4px; font-size: 0.65rem; font-weight: 900; background: #ffffff; color: #000000; padding: 1px 3px; border-radius: 4px; }
         .hidden { display: none !important; }
+
+        /* ESTILOS: MENÚ LATERAL Y MODAL */
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--header-bg); border-right: 1px solid var(--border-color); z-index: 2000; transition: left 0.25s ease; padding: 20px; box-sizing: border-box; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar.open { left: 0; }
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; display: none; }
+        .sidebar-overlay.open { display: block; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .sidebar-title { font-size: 1.1rem; font-weight: 800; }
+        .close-btn { background: transparent; border: none; color: var(--text-main); font-size: 1.3rem; cursor: pointer; padding: 4px; }
+        .menu-section-lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px; margin: 15px 0 5px 0; display: block; }
+        .menu-item { width: 100%; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px; border-radius: 8px; margin-bottom: 10px; font-weight: 700; font-size: 0.85rem; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px; box-sizing: border-box; }
+        .menu-item:hover { background: var(--missing-bg); }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; max-width: 450px; padding: 16px; box-sizing: border-box; color: var(--text-main); max-height: 90vh; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -99,12 +115,8 @@
         </div>
         
         <div class="controls-row">
+            <button class="menu-toggle-btn" onclick="toggleSidebar()">☰</button>
             <input type="text" id="search-box" class="search-input" placeholder="Buscar país..." oninput="filtrarPorBusqueda()">
-            <select id="theme-selector" class="theme-select" onchange="cambiarTema(this.value)">
-                <option value="dark">🌙 Oscuro</option>
-                <option value="light">☀️ Claro</option>
-                <option value="auto">⚙️ Auto</option>
-            </select>
         </div>
 
         <div class="filter-bar">
@@ -112,9 +124,79 @@
             <button class="filter-btn" onclick="cambiarFiltro('faltantes', this)">FALTANTES</button>
             <button class="filter-btn" onclick="cambiarFiltro('repetidas', this)">REPETIDAS</button>
         </div>
+
+        <div id="scanner-container-wrapper" class="scanner-container hidden" style="margin-top: 10px;">
+            <button class="filter-btn" style="width: 100%; background: var(--card-bg); border: 1px solid var(--primary); color: var(--text-main); cursor: pointer;" onclick="toggleScanner()">
+                📷 Escáner Express de Intercambio
+            </button>
+            
+            <div id="scanner-box" class="collapsed hidden" style="margin-top: 8px; padding: 12px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                <textarea id="scanner-input" placeholder="Pega el mensaje de WhatsApp... (ej. Me faltan: ARG 3, MEX 10)" style="width: 100%; height: 70px; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; font-family: inherit; font-size: 0.85rem; box-sizing: border-box; resize: none;"></textarea>
+                
+                <button onclick="procesarIntercambio()" style="width: 100%; margin-top: 8px; background: var(--primary); color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+                    Escanear Mis Repetidas
+                </button>
+                
+                <div id="scanner-result" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-main);"></div>
+            </div>
+        </div>
     </div>
     
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">Opciones Avanzadas</div>
+            <button class="close-btn" onclick="toggleSidebar()">✕</button>
+        </div>
+        
+        <span class="menu-section-lbl">Intercambios en vivo</span>
+        <button class="menu-item" onclick="toggleModoIntercambio()" style="border-left: 4px solid #facc15;">⚡ Modo Día de Intercambio</button>
+
+        <span class="menu-section-lbl">Compartir Listas</span>
+        <button class="menu-item" onclick="generarInfografia('faltantes')">📸 Foto: Lista Faltantes</button>
+        <button class="menu-item" onclick="generarInfografia('repetidas')">📸 Foto: Lista Repetidas</button>
+        
+        <span class="menu-section-lbl">Finanzas</span>
+        <button class="menu-item" onclick="calcularCostoFaltante()" style="border-left: 4px solid #22c55e;">💰 Costo Restante</button>
+
+        <span class="menu-section-lbl">Sincronización (Códigos)</span>
+        <button class="menu-item" onclick="exportarColeccion()">📤 Exportar mi Código</button>
+        <button class="menu-item" onclick="importarColeccion()">📥 Cargar Código de Amigo</button>
+
+        <span class="menu-section-lbl">Apariencia</span>
+        <select id="theme-selector" class="theme-select" onchange="cambiarTema(this.value)">
+            <option value="dark">🌙 Modo Oscuro</option>
+            <option value="light">☀️ Modo Claro</option>
+            <option value="auto">⚙️ Automático</option>
+        </select>
+    </div>
+
+    <div id="exchange-mode-container" class="content hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: var(--card-bg); padding: 12px; border-radius: 10px; border: 1px solid var(--border-color);">
+            <h2 style="margin: 0; color: #facc15; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">⚡ Modo Intercambio</h2>
+            <button class="btn-reset" onclick="toggleModoIntercambio()" style="color: white; background: #ef4444; padding: 8px 16px; border-radius: 6px; font-size: 0.9rem;">Cerrar Modo</button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px; text-align: center;">Toca una estampa repetida al entregarla. Se restará de tu inventario al instante.</p>
+        <div id="exchange-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;"></div>
+    </div>
+
     <div class="content" id="album-container"></div>
+
+    <div id="image-modal" class="modal hidden">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 1.1rem;">Tu Imagen está Lista</h3>
+                <button class="close-btn" onclick="cerrarModal()">✕</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 12px 0;">Mantén presionada la imagen para copiarla/guardarla directo en tu celular, o usa el botón de descarga.</p>
+            <div style="text-align: center; background: #0b0f19; padding: 8px; border-radius: 8px;">
+                <img id="modal-generated-img" src="" alt="Cromo Compartible" style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+            </div>
+            <button onclick="descargarImagen()" style="width: 100%; margin-top: 14px; background: var(--owned-bg); color: white; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">
+                💾 Descargar Imagen
+            </button>
+        </div>
+    </div>
     
     <script src="motor.js"></script>
 

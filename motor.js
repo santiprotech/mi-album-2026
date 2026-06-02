@@ -1,4 +1,4 @@
-// motor.js - Código unificado de UI, Lógica, Temas y Buscador
+// motor.js - Código unificado de UI, Lógica, Temas, Buscador, Escáner, Infografías, Intercambio y Sync Comprimido
 
 const estructuraCruda = [
     { g: "FWC", t: "especial_fwc", p: ["FWC"], b: ["🏆"] },
@@ -36,6 +36,7 @@ const TOTAL_ESTAMPAS = 20 + (48 * 20) + 14;
 let coleccion = JSON.parse(localStorage.getItem('figuritas_core_2026')) || {};
 let filtroActual = 'todos';
 let textoBusqueda = '';
+let modoIntercambioActivo = false;
 const container = document.getElementById('album-container');
 
 // --- GESTIÓN DE TEMAS (APARIENCIA) ---
@@ -51,27 +52,32 @@ function cambiarTema(nuevoTema) {
     localStorage.setItem('album_tema', nuevoTema);
 }
 
+// --- CONTROL DEL MENÚ LATERAL (SIDEBAR) ---
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+
 // --- CONSTRUCCIÓN DEL ÁLBUM ---
 albumData.forEach((seccion, index) => {
     const titulo = document.createElement('div');
-    titulo.className = 'section-title';
+    titulo.className = 'section-title clickable'; 
     titulo.innerText = seccion.grupo;
+    
     const grupoContentCont = document.createElement('div');
-    grupoContentCont.className = 'group-content';
+    grupoContentCont.className = 'group-content collapsed'; 
     grupoContentCont.id = `content-group-${index}`;
 
-    if (seccion.tipo === 'estandar') {
-        titulo.classList.add('clickable');
-        const arrow = document.createElement('span');
-        arrow.className = 'arrow'; arrow.id = `arrow-group-${index}`; arrow.innerText = '▼';
-        titulo.appendChild(arrow);
-        grupoContentCont.classList.add('collapsed');
-        titulo.onclick = () => {
-            const isCollapsed = grupoContentCont.classList.contains('collapsed');
-            if (isCollapsed) { grupoContentCont.classList.remove('collapsed'); arrow.innerText = '▲'; }
-            else { grupoContentCont.classList.add('collapsed'); arrow.innerText = '▼'; }
-        };
-    }
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow'; arrow.id = `arrow-group-${index}`; arrow.innerText = '▼';
+    titulo.appendChild(arrow);
+    
+    titulo.onclick = () => {
+        const isCollapsed = grupoContentCont.classList.contains('collapsed');
+        if (isCollapsed) { grupoContentCont.classList.remove('collapsed'); arrow.innerText = '▲'; }
+        else { grupoContentCont.classList.add('collapsed'); arrow.innerText = '▼'; }
+    };
+    
     container.appendChild(titulo);
 
     seccion.paises.forEach(paisObj => {
@@ -134,7 +140,18 @@ function reiniciarPais(paisNombre, tipo) {
 }
 
 // --- LOGICA DE FILTROS Y BUSCADOR ---
-function cambiarFiltro(tipo, elemento) { filtroActual = tipo; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); elemento.classList.add('active'); actualizarTodo(); }
+function cambiarFiltro(tipo, elemento) { 
+    filtroActual = tipo; 
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
+    elemento.classList.add('active'); 
+    
+    const scannerWrapper = document.getElementById('scanner-container-wrapper');
+    if (scannerWrapper && !modoIntercambioActivo) {
+        if (tipo === 'repetidas') scannerWrapper.classList.remove('hidden');
+        else scannerWrapper.classList.add('hidden');
+    }
+    actualizarTodo(); 
+}
 function filtrarPorBusqueda() { textoBusqueda = document.getElementById('search-box').value.toLowerCase().trim(); actualizarTodo(); }
 
 function actualizarTodo() {
@@ -159,9 +176,7 @@ function actualizarTodo() {
             
             const card = document.querySelector(`[data-pais="${p.nombre}"]`);
             if (card) {
-                // El país coincide con la búsqueda textual
                 const coincideBusqueda = p.nombre.toLowerCase().includes(textoBusqueda);
-                
                 if (!coincideBusqueda || (vCount === 0 && filtroActual !== 'todos')) { 
                     card.classList.add('hidden'); 
                     paisesOcultosEnSeccion++; 
@@ -178,8 +193,7 @@ function actualizarTodo() {
         } else { 
             if (tit) tit.classList.remove('hidden'); 
             if (grupoContentCont) grupoContentCont.classList.remove('hidden');
-            // Si el usuario escribe una búsqueda, forzamos la apertura temporal para que vea el resultado rápido
-            if (textoBusqueda !== '' && seccion.tipo === 'estandar' && grupoContentCont.classList.contains('collapsed')) {
+            if (textoBusqueda !== '' && grupoContentCont.classList.contains('collapsed')) {
                 grupoContentCont.classList.remove('collapsed');
                 const arrow = document.getElementById(`arrow-group-${idx}`);
                 if (arrow) arrow.innerText = '▲';
@@ -195,6 +209,341 @@ function actualizarTodo() {
     const elRing = document.getElementById('chart-ring'); if (elRing) elRing.style.strokeDashoffset = 113.1 - (pct / 100) * 113.1;
 }
 
-// Inicializadores obligatorios al cargar la app
+// --- DICCIONARIO FIFA INTERNO ---
+const mapaCodigosFIFA = {
+    "FWC": "FWC", "CC": "Coca-Cola", 
+    "MEX": "México", "RSA": "Sudáfrica", "KOR": "Corea del Sur", "CZE": "República Checa",
+    "CAN": "Canadá", "BIH": "Bosnia y Herzegovina", "QAT": "Qatar", "SUI": "Suiza", 
+    "BRA": "Brasil", "MAR": "Marruecos", "HAI": "Haití", "SCO": "Escocia", 
+    "USA": "Estados Unidos", "PAR": "Paraguay", "AUS": "Australia", "TUR": "Turquía",
+    "GER": "Alemania", "CUW": "Curazao", "CIV": "Costa de Marfil", "ECU": "Ecuador", 
+    "NED": "Países Bajos", "JPN": "Japón", "SWE": "Suecia", "TUN": "Túnez", 
+    "BEL": "Bélgica", "EGY": "Egipto", "IRN": "Irán", "NZL": "Nueva Zelanda",
+    "ESP": "España", "CPV": "Cabo Verde", "KSA": "Arabia Saudita", "URU": "Uruguay", 
+    "FRA": "Francia", "SEN": "Senegal", "IRQ": "Irak", "NOR": "Noruega", 
+    "ARG": "Argentina", "ALG": "Argelia", "AUT": "Austria", "JOR": "Jordania",
+    "POR": "Portugal", "COD": "RD Congo", "UZB": "Uzbekistán", "COL": "Colombia", 
+    "ENG": "Inglaterra", "CRO": "Croacia", "GHA": "Ghana", "PAN": "Panamá"
+};
+
+// --- ESCÁNER EXPRESS DE INTERCAMBIO ---
+function toggleScanner() {
+    const box = document.getElementById('scanner-box');
+    box.classList.toggle('hidden'); box.classList.toggle('collapsed');
+}
+
+function procesarIntercambio() {
+    const texto = document.getElementById('scanner-input').value.toUpperCase();
+    const resultadoDiv = document.getElementById('scanner-result');
+    if (!texto.trim()) { resultadoDiv.innerHTML = '<span style="color:#ef4444;">Primero pega un texto.</span>'; return; }
+
+    const regex = /([A-Z]{2,3})[^\w\d]*(\d{1,2})/g;
+    let coincidencias; const repetidasParaDar = []; let estampasDetectadas = 0;
+
+    while ((coincidencias = regex.exec(texto)) !== null) {
+        const codigo = coincidencias[1]; let numero = parseInt(coincidencias[2], 10);
+        const paisNombre = mapaCodigosFIFA[codigo];
+        if (paisNombre) {
+            estampasDetectadas++; if (paisNombre === 'FWC' && numero < 0) numero = 0; 
+            const key = `${paisNombre}-E${numero}`; const cantidad = coleccion[key] || 0;
+            if (cantidad > 1) repetidasParaDar.push(`<b>${codigo} ${numero}</b> (tienes ${cantidad - 1} de sobra)`);
+        }
+    }
+    if (estampasDetectadas === 0) { resultadoDiv.innerHTML = '<span style="color:var(--text-muted);">No detecté códigos válidos (ej. MEX 10, ARG 3).</span>'; return; }
+    if (repetidasParaDar.length > 0) {
+        resultadoDiv.innerHTML = `✅ <b>¡Match encontrado!</b> Le puedes dar:<br><div style="margin-top:8px; padding:10px; background:rgba(34,197,94,0.15); border:1px solid var(--owned-bg); border-radius:6px;">${repetidasParaDar.join('<br>')}</div>`;
+    } else { resultadoDiv.innerHTML = `❌ <b>Sin suerte.</b> La lista pide ${estampasDetectadas} estampas, pero no tienes ninguna repetida de esas.`; }
+}
+
+// --- GENERADOR DE INFOGRAFÍAS (CANVAS) ---
+let globalCanvasUrl = ''; 
+function agruparNumeros(numerosRaw, esFWC) {
+    if (numerosRaw.length === 0) return "";
+    let rangos = []; let inicio = numerosRaw[0]; let fin = numerosRaw[0];
+    const formatNum = (n) => (esFWC && n < 10) ? '0' + n : n;
+
+    for (let i = 1; i < numerosRaw.length; i++) {
+        if (numerosRaw[i] === fin + 1) { fin = numerosRaw[i]; } 
+        else {
+            if (inicio === fin) rangos.push(`${formatNum(inicio)}`);
+            else rangos.push(`${formatNum(inicio)}-${formatNum(fin)}`);
+            inicio = numerosRaw[i]; fin = numerosRaw[i];
+        }
+    }
+    if (inicio === fin) rangos.push(`${formatNum(inicio)}`);
+    else rangos.push(`${formatNum(inicio)}-${formatNum(fin)}`);
+    return rangos.join(', ');
+}
+
+function generarInfografia(tipo) {
+    toggleSidebar();
+    const listaFinal = [];
+    estructuraCruda.forEach(grupo => {
+        grupo.p.forEach(paisNombre => {
+            const codigoFIFA = Object.keys(mapaCodigosFIFA).find(k => mapaCodigosFIFA[k] === paisNombre);
+            if (!codigoFIFA) return;
+            
+            let inicio = 1, fin = 20;
+            if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; }
+            if (grupo.t === 'especial_coca') { inicio = 1; fin = 14; }
+            
+            const numerosRaw = [];
+            for (let i = inicio; i <= fin; i++) {
+                const q = coleccion[`${paisNombre}-E${i}`] || 0;
+                if (tipo === 'faltantes' && q === 0) numerosRaw.push(i);
+                else if (tipo === 'repetidas' && q > 1) numerosRaw.push(i);
+            }
+            if (numerosRaw.length > 0) {
+                const esFWC = (grupo.t === 'especial_fwc');
+                listaFinal.push({ cod: codigoFIFA, nums: agruparNumeros(numerosRaw, esFWC) });
+            }
+        });
+    });
+
+    if (listaFinal.length === 0) { alert(`Tu lista de "${tipo.toUpperCase()}" está vacía ahora mismo.`); return; }
+
+    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+    const width = 600; const padding = 25; const itemHeight = 35; const columnas = 2;
+    const totalFilas = Math.ceil(listaFinal.length / columnas);
+    const headerHeight = 90; const footerHeight = 45;
+    const height = headerHeight + (totalFilas * itemHeight) + (padding * 2) + footerHeight;
+    
+    canvas.width = width; canvas.height = height;
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, width, height);
+    
+    const gradiente = ctx.createLinearGradient(0, 0, width, 0);
+    gradiente.addColorStop(0, '#4f46e5'); gradiente.addColorStop(1, '#1e1b4b');
+    ctx.fillStyle = gradiente; ctx.fillRect(0, 0, width, headerHeight);
+    
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px -apple-system, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(tipo === 'faltantes' ? '📋 MIS FALTANTES - MUNDIAL 2026' : '🔁 MIS REPETIDAS - MUNDIAL 2026', width / 2, 40);
+    ctx.font = '13px -apple-system, sans-serif'; ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Actualizado al instante desde mi Sticker Tracker PWA', width / 2, 65);
+    
+    ctx.textAlign = 'left'; const colWidth = 260;
+    
+    listaFinal.forEach((item, index) => {
+        const c = index % columnas; const r = Math.floor(index / columnas);
+        const x = padding + (c * (colWidth + 30)); const y = headerHeight + padding + (r * itemHeight) + 15;
+        
+        ctx.fillStyle = tipo === 'faltantes' ? '#334155' : '#eab308'; ctx.fillRect(x, y - 16, 46, 22);
+        ctx.fillStyle = tipo === 'faltantes' ? '#f8fafc' : '#0f172a'; ctx.font = 'bold 12px -apple-system, sans-serif'; ctx.fillText(item.cod, x + 8, y);
+        
+        ctx.fillStyle = '#f8fafc'; ctx.font = '13px monospace';
+        let textoNums = item.nums; if (ctx.measureText(textoNums).width > colWidth - 55) ctx.font = '11px monospace';
+        ctx.fillText(textoNums, x + 56, y);
+    });
+    
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(0, height - footerHeight, width, footerHeight);
+    ctx.fillStyle = '#94a3b8'; ctx.font = 'italic 11px -apple-system, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('¿Tienes alguna? ¡Mándame mensaje y armamos el intercambio!', width / 2, height - 18);
+
+    globalCanvasUrl = canvas.toDataURL('image/png');
+    document.getElementById('modal-generated-img').src = globalCanvasUrl;
+    document.getElementById('image-modal').classList.remove('hidden');
+}
+function cerrarModal() { document.getElementById('image-modal').classList.add('hidden'); }
+function descargarImagen() {
+    const link = document.createElement('a'); link.download = `Album2026_${filtroActual}_${Date.now()}.png`;
+    link.href = globalCanvasUrl; link.click();
+}
+
+// --- MODO DÍA DE INTERCAMBIO ---
+function toggleModoIntercambio() {
+    modoIntercambioActivo = !modoIntercambioActivo;
+    document.getElementById('album-container').classList.toggle('hidden', modoIntercambioActivo);
+    document.querySelector('.controls-row').classList.toggle('hidden', modoIntercambioActivo);
+    document.querySelector('.filter-bar').classList.toggle('hidden', modoIntercambioActivo);
+    
+    const scannerWrap = document.getElementById('scanner-container-wrapper');
+    if (modoIntercambioActivo) {
+        if (scannerWrap) scannerWrap.classList.add('hidden');
+    } else {
+        if (scannerWrap && filtroActual === 'repetidas') scannerWrap.classList.remove('hidden');
+    }
+
+    const exchangeCont = document.getElementById('exchange-mode-container');
+    if (modoIntercambioActivo) {
+        if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
+        exchangeCont.classList.remove('hidden');
+        renderizarGrillaIntercambio();
+    } else {
+        exchangeCont.classList.add('hidden');
+        actualizarTodo(); 
+    }
+}
+
+function renderizarGrillaIntercambio() {
+    const grid = document.getElementById('exchange-grid');
+    grid.innerHTML = '';
+    const repetidas = [];
+    estructuraCruda.forEach(grupo => {
+        grupo.p.forEach(paisNombre => {
+            const codigoFIFA = Object.keys(mapaCodigosFIFA).find(k => mapaCodigosFIFA[k] === paisNombre);
+            let inicio = 1, fin = 20;
+            if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; }
+            if (grupo.t === 'especial_coca') { inicio = 1; fin = 14; }
+            
+            for (let i = inicio; i <= fin; i++) {
+                const key = `${paisNombre}-E${i}`;
+                const q = coleccion[key] || 0;
+                if (q > 1) {
+                    let numDisplay = (grupo.t === 'especial_fwc' && i < 10) ? '0'+i : i;
+                    repetidas.push({ key, cod: codigoFIFA, num: numDisplay, qty: q });
+                }
+            }
+        });
+    });
+
+    if (repetidas.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px; font-weight: bold; background: var(--card-bg); border-radius: 8px;">No tienes estampas repetidas disponibles.</div>';
+        return;
+    }
+
+    repetidas.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'estampa-btn repeated';
+        btn.style.height = '80px';
+        btn.style.display = 'flex'; btn.style.flexDirection = 'column'; btn.style.justifyContent = 'center'; btn.style.alignItems = 'center';
+        btn.innerHTML = `<span style="font-size: 0.8rem; color: #000; opacity: 0.6; font-weight: 800; letter-spacing: 1px;">${item.cod}</span><span style="font-size: 1.6rem; font-weight: 900; line-height: 1.1;">${item.num}</span><span class="rep-badge" style="font-size: 0.85rem; padding: 2px 5px; bottom: 6px; right: 6px; top: auto;">+${item.qty - 1}</span>`;
+        btn.onclick = () => {
+            if (coleccion[item.key] > 1) {
+                coleccion[item.key]--;
+                localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion));
+                if (coleccion[item.key] === 1) {
+                    btn.remove();
+                    if (grid.children.length === 0) grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px; font-weight: bold; background: var(--card-bg); border-radius: 8px;">¡Te quedaste sin repetidas!</div>';
+                } else {
+                    btn.querySelector('.rep-badge').innerText = `+${coleccion[item.key] - 1}`;
+                }
+                actualizarTodo(); 
+            }
+        };
+        grid.appendChild(btn);
+    });
+}
+
+// --- CALCULADORA DE COSTO RESTANTE ---
+function calcularCostoFaltante() {
+    toggleSidebar();
+    let faltantesNormales = 0; const COSTO_POR_ESTAMPA = 3.57;
+    estructuraCruda.forEach(grupo => {
+        if (grupo.t === 'especial_coca') return;
+        grupo.p.forEach(paisNombre => {
+            let inicio = 1, fin = 20;
+            if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; }
+            for (let i = inicio; i <= fin; i++) {
+                if ((coleccion[`${paisNombre}-E${i}`] || 0) === 0) faltantesNormales++;
+            }
+        });
+    });
+
+    if (faltantesNormales === 0) { alert("¡Felicidades! Ya tienes todas las estampas normales."); return; }
+    alert(`📊 INFORME DE ÁLBUM:\n\nTe faltan ${faltantesNormales} estampas (sin contar Coca-Cola).\n\n💸 Dinero estimado necesario: $${(faltantesNormales * COSTO_POR_ESTAMPA).toFixed(2)} MXN.`);
+}
+
+// --- DICCIONARIO DE COMPRESIÓN PARA SINCRONIZACIÓN ---
+const mapaExport = {};
+const mapaImport = {};
+let paisIdCounter = 0;
+// Creamos un ID corto (ej. "a", "b", "c") para cada país
+estructuraCruda.forEach(grupo => {
+    grupo.p.forEach(paisNombre => {
+        const id = paisIdCounter.toString(36); 
+        mapaExport[paisNombre] = id;
+        mapaImport[id] = paisNombre;
+        paisIdCounter++;
+    });
+});
+
+// --- COMPARTIR / SINCRONIZAR DATOS CON COMPRESIÓN ---
+function exportarColeccion() {
+    toggleSidebar();
+    try {
+        const agrupado = {};
+        for (const key in coleccion) {
+            const partes = key.split('-E');
+            if (partes.length === 2) {
+                const pais = partes[0];
+                const num = partes[1];
+                const qty = coleccion[key];
+                const id = mapaExport[pais];
+                
+                if (id !== undefined) {
+                    if (!agrupado[id]) agrupado[id] = [];
+                    // Si tengo 1 sola estampa, guardo solo el número (ej: "5"). Si tengo repetidas, guardo "numero.cantidad" (ej: "5.3")
+                    if (qty === 1) agrupado[id].push(num);
+                    else agrupado[id].push(`${num}.${qty}`);
+                }
+            }
+        }
+        
+        const arrFinal = [];
+        for (const id in agrupado) {
+            // Unimos el ID del país con sus estampas: id:1,2,3.2,4
+            arrFinal.push(`${id}:${agrupado[id].join(',')}`);
+        }
+        
+        // Lo pasamos a Base64 para que siga viéndose como un "código seguro" sin caracteres raros
+        const codigoCorto = btoa(arrFinal.join('-'));
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(codigoCorto).then(() => {
+                alert('¡Código COMPACTO copiado al portapapeles!\n\nPégalo en un mensaje de WhatsApp para enviarlo a tu amigo.');
+            }).catch(err => {
+                prompt('Copia este código comprimido manualmente:', codigoCorto);
+            });
+        } else {
+            prompt('Copia este código comprimido manualmente:', codigoCorto);
+        }
+    } catch (e) {
+        alert('Hubo un error al generar el código compacto.');
+    }
+}
+
+function importarColeccion() {
+    toggleSidebar();
+    const codigo = prompt('Pega aquí el código que te compartió tu amigo.\n\n⚠️ ¡ATENCIÓN! Al hacer esto, la colección de tu amigo REEMPLAZARÁ tu colección actual.');
+    
+    if (!codigo) return;
+    
+    try {
+        const decodificado = atob(codigo.trim());
+        const nuevaColeccion = {};
+        
+        if (decodificado) {
+            const grupos = decodificado.split('-');
+            grupos.forEach(grupo => {
+                const partes = grupo.split(':');
+                if (partes.length === 2) {
+                    const id = partes[0];
+                    const nums = partes[1].split(',');
+                    const paisNombre = mapaImport[id];
+                    
+                    if (paisNombre) {
+                        nums.forEach(nStr => {
+                            const subPartes = nStr.split('.');
+                            const num = subPartes[0];
+                            const qty = subPartes.length > 1 ? parseInt(subPartes[1], 10) : 1;
+                            nuevaColeccion[`${paisNombre}-E${num}`] = qty;
+                        });
+                    }
+                }
+            });
+        }
+        
+        if (Object.keys(nuevaColeccion).length > 0 || decodificado === "") {
+            coleccion = nuevaColeccion;
+            localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion));
+            actualizarTodo();
+            alert('¡Colección sincronizada con éxito!');
+        } else {
+            throw new Error("Código inválido");
+        }
+    } catch (e) {
+        alert('❌ Código inválido. Asegúrate de copiar el código completo exactamente como te lo enviaron.');
+    }
+}
+
 inicializarTema();
 actualizarTodo();
