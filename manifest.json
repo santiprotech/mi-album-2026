@@ -1,7 +1,7 @@
 {
-  "name": "Mi Álbum de Figuritas 2026",
-  "short_name": "Álbum 2026",
-  "description": "Réplica del álbum de figuritas 2026",
+  "name": "Mundial 2026: Sticker Tracker",
+  "short_name": "Sticker 2026",
+  "description": "Controlador y organizador de estampas para el torneo mundial de fútbol 2026",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",

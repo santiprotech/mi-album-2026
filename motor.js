@@ -1,4 +1,4 @@
-// motor.js - Código unificado de UI y Lógica con la nueva lista de Grupos
+// motor.js - Código unificado de UI, Lógica, Temas y Buscador
 
 const estructuraCruda = [
     { g: "FWC", t: "especial_fwc", p: ["FWC"], b: ["🏆"] },
@@ -23,7 +23,6 @@ const albumData = estructuraCruda.map(grupo => {
         paises: grupo.p.map((nombrePais, idx) => {
             let elementoBandera = "";
             if (grupo.t === 'estandar') {
-                // Inyecta una imagen real de la bandera usando el código ISO del país corregido
                 elementoBandera = `<img src="https://flagcdn.com/w40/${grupo.c[idx]}.png" style="width:24px; height:auto; border-radius:3px; vertical-align:middle;">`;
             } else {
                 elementoBandera = `<span style="font-size:1.2rem;">${grupo.b[idx]}</span>`;
@@ -36,8 +35,23 @@ const albumData = estructuraCruda.map(grupo => {
 const TOTAL_ESTAMPAS = 20 + (48 * 20) + 14; 
 let coleccion = JSON.parse(localStorage.getItem('figuritas_core_2026')) || {};
 let filtroActual = 'todos';
+let textoBusqueda = '';
 const container = document.getElementById('album-container');
 
+// --- GESTIÓN DE TEMAS (APARIENCIA) ---
+function inicializarTema() {
+    const temaGuardado = localStorage.getItem('album_tema') || 'dark';
+    document.documentElement.setAttribute('data-theme', temaGuardado);
+    const selector = document.getElementById('theme-selector');
+    if (selector) selector.value = temaGuardado;
+}
+
+function cambiarTema(nuevoTema) {
+    document.documentElement.setAttribute('data-theme', nuevoTema);
+    localStorage.setItem('album_tema', nuevoTema);
+}
+
+// --- CONSTRUCCIÓN DEL ÁLBUM ---
 albumData.forEach((seccion, index) => {
     const titulo = document.createElement('div');
     titulo.className = 'section-title';
@@ -118,30 +132,61 @@ function reiniciarPais(paisNombre, tipo) {
         localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion)); actualizarTodo();
     }
 }
+
+// --- LOGICA DE FILTROS Y BUSCADOR ---
 function cambiarFiltro(tipo, elemento) { filtroActual = tipo; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); elemento.classList.add('active'); actualizarTodo(); }
+function filtrarPorBusqueda() { textoBusqueda = document.getElementById('search-box').value.toLowerCase().trim(); actualizarTodo(); }
+
 function actualizarTodo() {
     let t = 0, r = 0;
     albumData.forEach((seccion, idx) => {
-        let ocultos = 0;
+        let paisesOcultosEnSeccion = 0;
+        const grupoContentCont = document.getElementById(`content-group-${idx}`);
+        
         seccion.paises.forEach(p => {
             let pCount = 0, vCount = 0;
             let inicio = 1, fin = 20; if (seccion.tipo === 'especial_fwc') { inicio = 0; fin = 19; } if (seccion.tipo === 'especial_coca') { inicio = 1; fin = 14; }
+            
             for (let i = inicio; i <= fin; i++) {
                 const q = coleccion[`${p.nombre}-E${i}`] || 0; const b = document.getElementById(`btn-${p.nombre}-${i}`);
                 if (q >= 1) t++; if (q > 1) r += (q - 1); if (q >= 1) pCount++;
                 let vis = !(filtroActual === 'faltantes' && q > 0 || filtroActual === 'repetidas' && q <= 1);
                 if (vis) { if (b) b.classList.remove('hidden'); vCount++; } else { if (b) b.classList.add('hidden'); }
             }
+            
             const elCont = document.getElementById(`count-${p.nombre}`);
             if (elCont) elCont.innerText = `${pCount} / ${(fin - inicio) + 1}`;
+            
             const card = document.querySelector(`[data-pais="${p.nombre}"]`);
             if (card) {
-                if (vCount === 0 && filtroActual !== 'todos') { card.classList.add('hidden'); ocultos++; } else card.classList.remove('hidden');
+                // El país coincide con la búsqueda textual
+                const coincideBusqueda = p.nombre.toLowerCase().includes(textoBusqueda);
+                
+                if (!coincideBusqueda || (vCount === 0 && filtroActual !== 'todos')) { 
+                    card.classList.add('hidden'); 
+                    paisesOcultosEnSeccion++; 
+                } else { 
+                    card.classList.remove('hidden'); 
+                }
             }
         });
+        
         const tit = Array.from(document.querySelectorAll('.section-title')).find(el => el.childNodes[0].textContent.trim() === seccion.grupo);
-        if (ocultos === seccion.paises.length && filtroActual !== 'todos') { if (tit) tit.classList.add('hidden'); } else { if (tit) tit.classList.remove('hidden'); }
+        if (paisesOcultosEnSeccion === seccion.paises.length) { 
+            if (tit) tit.classList.add('hidden'); 
+            if (grupoContentCont) grupoContentCont.classList.add('hidden');
+        } else { 
+            if (tit) tit.classList.remove('hidden'); 
+            if (grupoContentCont) grupoContentCont.classList.remove('hidden');
+            // Si el usuario escribe una búsqueda, forzamos la apertura temporal para que vea el resultado rápido
+            if (textoBusqueda !== '' && seccion.tipo === 'estandar' && grupoContentCont.classList.contains('collapsed')) {
+                grupoContentCont.classList.remove('collapsed');
+                const arrow = document.getElementById(`arrow-group-${idx}`);
+                if (arrow) arrow.innerText = '▲';
+            }
+        }
     });
+    
     const f = TOTAL_ESTAMPAS - t, pct = Math.round((t / TOTAL_ESTAMPAS) * 100) || 0;
     const elPct = document.getElementById('stat-pct'); if (elPct) elPct.innerText = `${pct}%`;
     const elTengo = document.getElementById('stat-tengo'); if (elTengo) elTengo.innerText = t;
@@ -149,4 +194,7 @@ function actualizarTodo() {
     const elRep = document.getElementById('stat-rep'); if (elRep) elRep.innerText = r;
     const elRing = document.getElementById('chart-ring'); if (elRing) elRing.style.strokeDashoffset = 113.1 - (pct / 100) * 113.1;
 }
+
+// Inicializadores obligatorios al cargar la app
+inicializarTema();
 actualizarTodo();

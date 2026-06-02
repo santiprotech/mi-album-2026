@@ -1,8 +1,9 @@
-const CACHE_NAME = 'album-v1';
+const CACHE_NAME = 'album-v2';
 const ARCHIVOS = [
   './',
   './index.html',
-  './motor.js'
+  './motor.js',
+  './manifest.json'
 ];
 
 self.addEventListener('install', e => {
@@ -17,6 +18,21 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(response => {
       return response || fetch(e.request);
+    })
+  );
+});
+
+// Limpieza para borrar la caché vieja de la v1
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
     })
   );
 });
