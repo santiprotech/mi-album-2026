@@ -56,7 +56,6 @@
         .stat-val.tengo { color: #4ade80; } .stat-val.falta { color: #f87171; } .stat-val.rep { color: #facc15; }
         .stat-lbl { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
         
-        /* Controles de Búsqueda y Botón de Menú */
         .controls-row { display: flex; gap: 6px; margin-bottom: 12px; }
         .menu-toggle-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 14px; border-radius: 6px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .search-input { flex: 1; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; outline: none; }
@@ -84,7 +83,7 @@
         .hidden { display: none !important; }
 
         /* ESTILOS: MENÚ LATERAL Y MODAL */
-        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--header-bg); border-right: 1px solid var(--border-color); z-index: 2000; transition: left 0.25s ease; padding: 20px; box-sizing: border-box; box-shadow: 5px 0 15px rgba(0,0,0,0.3); }
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: var(--header-bg); border-right: 1px solid var(--border-color); z-index: 2000; transition: left 0.25s ease; padding: 20px; box-sizing: border-box; box-shadow: 5px 0 15px rgba(0,0,0,0.3); overflow-y: auto;}
         .sidebar.open { left: 0; }
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; display: none; }
         .sidebar-overlay.open { display: block; }
@@ -149,6 +148,10 @@
             <button class="close-btn" onclick="toggleSidebar()">✕</button>
         </div>
         
+        <span class="menu-section-lbl">Sincronización</span>
+        <button class="menu-item" onclick="exportarColeccion()" style="border-left: 4px solid #3b82f6;">📤 Exportar Código</button>
+        <button class="menu-item" onclick="importarColeccion()" style="border-left: 4px solid #8b5cf6;">📥 Importar Código</button>
+
         <span class="menu-section-lbl">Intercambios en vivo</span>
         <button class="menu-item" onclick="toggleModoIntercambio()" style="border-left: 4px solid #facc15;">⚡ Modo Día de Intercambio</button>
 

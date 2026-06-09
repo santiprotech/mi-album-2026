@@ -17,6 +17,22 @@ const estructuraCruda = [
     { g: "Coca-Cola", t: "especial_coca", p: ["Coca-Cola"], b: ["🥤"] }
 ];
 
+const mapaCodigosFIFA = {
+    "FWC": "FWC", "CC": "Coca-Cola", 
+    "MEX": "México", "RSA": "Sudáfrica", "KOR": "Corea del Sur", "CZE": "República Checa",
+    "CAN": "Canadá", "BIH": "Bosnia y Herzegovina", "QAT": "Qatar", "SUI": "Suiza", 
+    "BRA": "Brasil", "MAR": "Marruecos", "HAI": "Haití", "SCO": "Escocia", 
+    "USA": "Estados Unidos", "PAR": "Paraguay", "AUS": "Australia", "TUR": "Turquía",
+    "GER": "Alemania", "CUW": "Curazao", "CIV": "Costa de Marfil", "ECU": "Ecuador", 
+    "NED": "Países Bajos", "JPN": "Japón", "SWE": "Suecia", "TUN": "Túnez", 
+    "BEL": "Bélgica", "EGY": "Egipto", "IRN": "Irán", "NZL": "Nueva Zelanda",
+    "ESP": "España", "CPV": "Cabo Verde", "KSA": "Arabia Saudita", "URU": "Uruguay", 
+    "FRA": "Francia", "SEN": "Senegal", "IRQ": "Irak", "NOR": "Noruega", 
+    "ARG": "Argentina", "ALG": "Argelia", "AUT": "Austria", "JOR": "Jordania",
+    "POR": "Portugal", "COD": "RD Congo", "UZB": "Uzbekistán", "COL": "Colombia", 
+    "ENG": "Inglaterra", "CRO": "Croacia", "GHA": "Ghana", "PAN": "Panamá"
+};
+
 const albumData = estructuraCruda.map(grupo => {
     return {
         grupo: grupo.g, tipo: grupo.t,
@@ -39,7 +55,6 @@ let textoBusqueda = '';
 let modoIntercambioActivo = false;
 const container = document.getElementById('album-container');
 
-// --- GESTIÓN DE TEMAS (APARIENCIA) ---
 function inicializarTema() {
     const temaGuardado = localStorage.getItem('album_tema') || 'dark';
     document.documentElement.setAttribute('data-theme', temaGuardado);
@@ -52,34 +67,27 @@ function cambiarTema(nuevoTema) {
     localStorage.setItem('album_tema', nuevoTema);
 }
 
-// --- CONTROL DEL MENÚ LATERAL (SIDEBAR) ---
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebar-overlay').classList.toggle('open');
 }
 
-// --- CONSTRUCCIÓN DEL ÁLBUM ---
 albumData.forEach((seccion, index) => {
     const titulo = document.createElement('div');
     titulo.className = 'section-title clickable'; 
     titulo.innerText = seccion.grupo;
-    
     const grupoContentCont = document.createElement('div');
     grupoContentCont.className = 'group-content collapsed'; 
     grupoContentCont.id = `content-group-${index}`;
-
     const arrow = document.createElement('span');
     arrow.className = 'arrow'; arrow.id = `arrow-group-${index}`; arrow.innerText = '▼';
     titulo.appendChild(arrow);
-    
     titulo.onclick = () => {
         const isCollapsed = grupoContentCont.classList.contains('collapsed');
         if (isCollapsed) { grupoContentCont.classList.remove('collapsed'); arrow.innerText = '▲'; }
         else { grupoContentCont.classList.add('collapsed'); arrow.innerText = '▼'; }
     };
-    
     container.appendChild(titulo);
-
     seccion.paises.forEach(paisObj => {
         const paisNombre = paisObj.nombre;
         const card = document.createElement('div');
@@ -87,25 +95,23 @@ albumData.forEach((seccion, index) => {
         const header = document.createElement('div'); header.className = 'pais-header';
         const info = document.createElement('div'); info.className = 'pais-info';
         const nombreHTML = document.createElement('div'); nombreHTML.className = 'pais-nombre';
-        nombreHTML.innerHTML = `${paisObj.banderaHtml} <span>${paisNombre}</span>`;
+        const codigoFIFA = Object.keys(mapaCodigosFIFA).find(k => mapaCodigosFIFA[k] === paisNombre);
+        const nombreMostrar = codigoFIFA ? `${codigoFIFA} - ${paisNombre}` : paisNombre;
+        nombreHTML.innerHTML = `${paisObj.banderaHtml} <span>${nombreMostrar}</span>`;
         const cont = document.createElement('div'); cont.className = 'pais-contador'; cont.id = `count-${paisNombre}`;
-
         info.appendChild(nombreHTML); info.appendChild(cont); header.appendChild(info);
         const reset = document.createElement('button'); reset.className = 'btn-reset'; reset.innerText = 'REINICIAR';
         reset.onclick = (e) => { e.stopPropagation(); reiniciarPais(paisNombre, seccion.tipo); };
         header.appendChild(reset); card.appendChild(header);
-
         const grid = document.createElement('div'); grid.className = 'grid-estampas';
         let inicioLoop = 1, finLoop = 20;
         if (seccion.tipo === 'especial_fwc') { inicioLoop = 0; finLoop = 19; }
         if (seccion.tipo === 'especial_coca') { inicioLoop = 1; finLoop = 14; }
-
         for (let i = inicioLoop; i <= finLoop; i++) {
             const btn = document.createElement('button'); btn.className = 'estampa-btn'; btn.id = `btn-${paisNombre}-${i}`;
             btn.innerText = seccion.tipo === 'especial_fwc' ? (i < 10 ? '0' + i : i) : i;
             const key = `${paisNombre}-E${i}`;
             actualizarStyleBoton(btn, coleccion[key] || 0);
-
             btn.addEventListener('click', () => { coleccion[key] = (coleccion[key] || 0) + 1; guardarYActualizar(btn, key, coleccion[key]); });
             btn.addEventListener('contextmenu', (e) => { e.preventDefault(); descontarEstampa(btn, key); });
             let tMousedown;
@@ -127,9 +133,19 @@ function descontarEstampa(btn, key) {
 }
 function guardarYActualizar(btn, key, estado) { localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion)); actualizarStyleBoton(btn, estado); actualizarTodo(); }
 function actualizarStyleBoton(btn, cantidad) {
-    btn.classList.remove('owned', 'repeated'); const badge = btn.querySelector('.rep-badge'); if (badge) badge.remove();
-    if (cantidad === 1) btn.classList.add('owned');
-    else if (cantidad > 1) { btn.classList.add('repeated'); const b = document.createElement('span'); b.className = 'rep-badge'; b.innerText = `+${cantidad - 1}`; btn.appendChild(b); }
+    if(!btn) return;
+    btn.classList.remove('owned', 'repeated'); 
+    const badge = btn.querySelector('.rep-badge'); 
+    if (badge) badge.remove();
+    if (cantidad === 1) {
+        btn.classList.add('owned');
+    } else if (cantidad > 1) { 
+        btn.classList.add('repeated'); 
+        const b = document.createElement('span'); 
+        b.className = 'rep-badge'; 
+        b.innerText = `+${cantidad - 1}`; 
+        btn.appendChild(b); 
+    }
 }
 function reiniciarPais(paisNombre, tipo) {
     if (confirm(`¿Reiniciar ${paisNombre}?`)) {
@@ -138,14 +154,10 @@ function reiniciarPais(paisNombre, tipo) {
         localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion)); actualizarTodo();
     }
 }
-
-// --- LOGICA DE FILTROS Y BUSCADOR ---
 function cambiarFiltro(tipo, elemento) { 
     filtroActual = tipo; 
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active')); 
     elemento.classList.add('active'); 
-    
-    // El escáner solo se muestra en la pestaña de repetidas
     const scannerWrapper = document.getElementById('scanner-container-wrapper');
     if (scannerWrapper && !modoIntercambioActivo) {
         if (tipo === 'repetidas') scannerWrapper.classList.remove('hidden');
@@ -160,34 +172,31 @@ function actualizarTodo() {
     albumData.forEach((seccion, idx) => {
         let paisesOcultosEnSeccion = 0;
         const grupoContentCont = document.getElementById(`content-group-${idx}`);
-        
         seccion.paises.forEach(p => {
             let pCount = 0, vCount = 0;
             let inicio = 1, fin = 20; if (seccion.tipo === 'especial_fwc') { inicio = 0; fin = 19; } if (seccion.tipo === 'especial_coca') { inicio = 1; fin = 14; }
-            
             for (let i = inicio; i <= fin; i++) {
-                const q = coleccion[`${p.nombre}-E${i}`] || 0; const b = document.getElementById(`btn-${p.nombre}-${i}`);
+                const q = coleccion[`${p.nombre}-E${i}`] || 0; 
+                const b = document.getElementById(`btn-${p.nombre}-${i}`);
                 if (q >= 1) t++; if (q > 1) r += (q - 1); if (q >= 1) pCount++;
-                let vis = !(filtroActual === 'faltantes' && q > 0 || filtroActual === 'repetidas' && q <= 1);
-                if (vis) { if (b) b.classList.remove('hidden'); vCount++; } else { if (b) b.classList.add('hidden'); }
+                if (b) {
+                    actualizarStyleBoton(b, q);
+                    let vis = !(filtroActual === 'faltantes' && q > 0 || filtroActual === 'repetidas' && q <= 1);
+                    if (vis) { b.classList.remove('hidden'); vCount++; } else { b.classList.add('hidden'); }
+                }
             }
-            
             const elCont = document.getElementById(`count-${p.nombre}`);
             if (elCont) elCont.innerText = `${pCount} / ${(fin - inicio) + 1}`;
-            
             const card = document.querySelector(`[data-pais="${p.nombre}"]`);
             if (card) {
-                const coincideBusqueda = p.nombre.toLowerCase().includes(textoBusqueda);
-                
+                const codigoFIFA = Object.keys(mapaCodigosFIFA).find(k => mapaCodigosFIFA[k] === p.nombre) || "";
+                const coincideBusqueda = p.nombre.toLowerCase().includes(textoBusqueda) || codigoFIFA.toLowerCase().includes(textoBusqueda);
                 if (!coincideBusqueda || (vCount === 0 && filtroActual !== 'todos')) { 
                     card.classList.add('hidden'); 
                     paisesOcultosEnSeccion++; 
-                } else { 
-                    card.classList.remove('hidden'); 
-                }
+                } else { card.classList.remove('hidden'); }
             }
         });
-        
         const tit = Array.from(document.querySelectorAll('.section-title')).find(el => el.childNodes[0].textContent.trim() === seccion.grupo);
         if (paisesOcultosEnSeccion === seccion.paises.length) { 
             if (tit) tit.classList.add('hidden'); 
@@ -202,7 +211,6 @@ function actualizarTodo() {
             }
         }
     });
-    
     const f = TOTAL_ESTAMPAS - t, pct = Math.round((t / TOTAL_ESTAMPAS) * 100) || 0;
     const elPct = document.getElementById('stat-pct'); if (elPct) elPct.innerText = `${pct}%`;
     const elTengo = document.getElementById('stat-tengo'); if (elTengo) elTengo.innerText = t;
@@ -211,24 +219,6 @@ function actualizarTodo() {
     const elRing = document.getElementById('chart-ring'); if (elRing) elRing.style.strokeDashoffset = 113.1 - (pct / 100) * 113.1;
 }
 
-// --- DICCIONARIO FIFA INTERNO ---
-const mapaCodigosFIFA = {
-    "FWC": "FWC", "CC": "Coca-Cola", 
-    "MEX": "México", "RSA": "Sudáfrica", "KOR": "Corea del Sur", "CZE": "República Checa",
-    "CAN": "Canadá", "BIH": "Bosnia y Herzegovina", "QAT": "Qatar", "SUI": "Suiza", 
-    "BRA": "Brasil", "MAR": "Marruecos", "HAI": "Haití", "SCO": "Escocia", 
-    "USA": "Estados Unidos", "PAR": "Paraguay", "AUS": "Australia", "TUR": "Turquía",
-    "GER": "Alemania", "CUW": "Curazao", "CIV": "Costa de Marfil", "ECU": "Ecuador", 
-    "NED": "Países Bajos", "JPN": "Japón", "SWE": "Suecia", "TUN": "Túnez", 
-    "BEL": "Bélgica", "EGY": "Egipto", "IRN": "Irán", "NZL": "Nueva Zelanda",
-    "ESP": "España", "CPV": "Cabo Verde", "KSA": "Arabia Saudita", "URU": "Uruguay", 
-    "FRA": "Francia", "SEN": "Senegal", "IRQ": "Irak", "NOR": "Noruega", 
-    "ARG": "Argentina", "ALG": "Argelia", "AUT": "Austria", "JOR": "Jordania",
-    "POR": "Portugal", "COD": "RD Congo", "UZB": "Uzbekistán", "COL": "Colombia", 
-    "ENG": "Inglaterra", "CRO": "Croacia", "GHA": "Ghana", "PAN": "Panamá"
-};
-
-// --- ESCÁNER EXPRESS DE INTERCAMBIO ---
 function toggleScanner() {
     const box = document.getElementById('scanner-box');
     box.classList.toggle('hidden'); box.classList.toggle('collapsed');
@@ -238,10 +228,8 @@ function procesarIntercambio() {
     const texto = document.getElementById('scanner-input').value.toUpperCase();
     const resultadoDiv = document.getElementById('scanner-result');
     if (!texto.trim()) { resultadoDiv.innerHTML = '<span style="color:#ef4444;">Primero pega un texto.</span>'; return; }
-
     const regex = /([A-Z]{2,3})[^\w\d]*(\d{1,2})/g;
     let coincidencias; const repetidasParaDar = []; let estampasDetectadas = 0;
-
     while ((coincidencias = regex.exec(texto)) !== null) {
         const codigo = coincidencias[1]; let numero = parseInt(coincidencias[2], 10);
         const paisNombre = mapaCodigosFIFA[codigo];
@@ -251,46 +239,20 @@ function procesarIntercambio() {
             if (cantidad > 1) repetidasParaDar.push(`<b>${codigo} ${numero}</b> (tienes ${cantidad - 1} de sobra)`);
         }
     }
-    if (estampasDetectadas === 0) { resultadoDiv.innerHTML = '<span style="color:var(--text-muted);">No detecté códigos válidos (ej. MEX 10, ARG 3).</span>'; return; }
+    if (estampasDetectadas === 0) { resultadoDiv.innerHTML = '<span style="color:var(--text-muted);">No detecté códigos válidos.</span>'; return; }
     if (repetidasParaDar.length > 0) {
-        resultadoDiv.innerHTML = `✅ <b>¡Match encontrado!</b> Le puedes dar:<br><div style="margin-top:8px; padding:10px; background:rgba(34,197,94,0.15); border:1px solid var(--owned-bg); border-radius:6px;">${repetidasParaDar.join('<br>')}</div>`;
-    } else { resultadoDiv.innerHTML = `❌ <b>Sin suerte.</b> La lista pide ${estampasDetectadas} estampas, pero no tienes ninguna repetida de esas.`; }
-}
-
-// --- GENERADOR DE INFOGRAFÍAS (CANVAS) ---
-let globalCanvasUrl = ''; 
-function agruparNumeros(numerosRaw, esFWC) {
-    if (numerosRaw.length === 0) return "";
-    let rangos = []; let inicio = numerosRaw[0]; let fin = numerosRaw[0];
-    const formatNum = (n) => (esFWC && n < 10) ? '0' + n : n;
-
-    for (let i = 1; i < numerosRaw.length; i++) {
-        if (numerosRaw[i] === fin + 1) {
-            fin = numerosRaw[i];
-        } else {
-            if (inicio === fin) rangos.push(`${formatNum(inicio)}`);
-            else rangos.push(`${formatNum(inicio)}-${formatNum(fin)}`);
-            inicio = numerosRaw[i]; fin = numerosRaw[i];
-        }
-    }
-    if (inicio === fin) rangos.push(`${formatNum(inicio)}`);
-    else rangos.push(`${formatNum(inicio)}-${formatNum(fin)}`);
-    return rangos.join(', ');
+        resultadoDiv.innerHTML = `✅ <b>¡Match!</b> Le puedes dar:<br><div style="margin-top:8px; padding:10px; background:rgba(34,197,94,0.15); border:1px solid var(--owned-bg); border-radius:6px;">${repetidasParaDar.join('<br>')}</div>`;
+    } else { resultadoDiv.innerHTML = `❌ <b>Sin suerte.</b> La lista pide ${estampasDetectadas} estampas, pero no tienes repetidas.`; }
 }
 
 function generarInfografia(tipo) {
     toggleSidebar();
-    
     const listaFinal = [];
     estructuraCruda.forEach(grupo => {
         grupo.p.forEach(paisNombre => {
             const codigoFIFA = Object.keys(mapaCodigosFIFA).find(k => mapaCodigosFIFA[k] === paisNombre);
             if (!codigoFIFA) return;
-            
-            let inicio = 1, fin = 20;
-            if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; }
-            if (grupo.t === 'especial_coca') { inicio = 1; fin = 14; }
-            
+            let inicio = 1, fin = 20; if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; } if (grupo.t === 'especial_coca') { inicio = 1; fin = 14; }
             const numerosRaw = [];
             for (let i = inicio; i <= fin; i++) {
                 const q = coleccion[`${paisNombre}-E${i}`] || 0;
@@ -303,179 +265,143 @@ function generarInfografia(tipo) {
             }
         });
     });
-
-    if (listaFinal.length === 0) { alert(`Tu lista de "${tipo.toUpperCase()}" está vacía ahora mismo.`); return; }
-
+    if (listaFinal.length === 0) { alert(`Tu lista de "${tipo.toUpperCase()}" está vacía.`); return; }
     const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
     const width = 600; const padding = 25; const itemHeight = 35; const columnas = 2;
     const totalFilas = Math.ceil(listaFinal.length / columnas);
     const headerHeight = 90; const footerHeight = 45;
     const height = headerHeight + (totalFilas * itemHeight) + (padding * 2) + footerHeight;
-    
     canvas.width = width; canvas.height = height;
     ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, width, height);
-    
     const gradiente = ctx.createLinearGradient(0, 0, width, 0);
     gradiente.addColorStop(0, '#4f46e5'); gradiente.addColorStop(1, '#1e1b4b');
     ctx.fillStyle = gradiente; ctx.fillRect(0, 0, width, headerHeight);
-    
     ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px -apple-system, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(tipo === 'faltantes' ? '📋 MIS FALTANTES - MUNDIAL 2026' : '🔁 MIS REPETIDAS - MUNDIAL 2026', width / 2, 40);
-    ctx.font = '13px -apple-system, sans-serif'; ctx.fillStyle = '#94a3b8';
-    ctx.fillText('Actualizado al instante desde mi Sticker Tracker PWA', width / 2, 65);
-    
-    ctx.textAlign = 'left'; const colWidth = 260;
-    
+    ctx.fillText(tipo === 'faltantes' ? '📋 MIS FALTANTES' : '🔁 MIS REPETIDAS', width / 2, 40);
+    ctx.textAlign = 'left';
     listaFinal.forEach((item, index) => {
         const c = index % columnas; const r = Math.floor(index / columnas);
-        const x = padding + (c * (colWidth + 30)); const y = headerHeight + padding + (r * itemHeight) + 15;
-        
+        const x = padding + (c * 290); const y = headerHeight + padding + (r * itemHeight) + 15;
         ctx.fillStyle = tipo === 'faltantes' ? '#334155' : '#eab308'; ctx.fillRect(x, y - 16, 46, 22);
-        ctx.fillStyle = tipo === 'faltantes' ? '#f8fafc' : '#0f172a'; ctx.font = 'bold 12px -apple-system, sans-serif'; ctx.fillText(item.cod, x + 8, y);
-        
-        ctx.fillStyle = '#f8fafc'; ctx.font = '13px monospace';
-        let textoNums = item.nums; if (ctx.measureText(textoNums).width > colWidth - 55) ctx.font = '11px monospace';
-        ctx.fillText(textoNums, x + 56, y);
+        ctx.fillStyle = '#f8fafc'; ctx.font = 'bold 12px sans-serif'; ctx.fillText(item.cod, x + 8, y);
+        ctx.fillText(item.nums, x + 56, y);
     });
-    
-    ctx.fillStyle = '#1e293b'; ctx.fillRect(0, height - footerHeight, width, footerHeight);
-    ctx.fillStyle = '#94a3b8'; ctx.font = 'italic 11px -apple-system, sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('¿Tienes alguna? ¡Mándame mensaje y armamos el intercambio!', width / 2, height - 18);
-
     globalCanvasUrl = canvas.toDataURL('image/png');
     document.getElementById('modal-generated-img').src = globalCanvasUrl;
     document.getElementById('image-modal').classList.remove('hidden');
 }
-function cerrarModal() { document.getElementById('image-modal').classList.add('hidden'); }
-function descargarImagen() {
-    const link = document.createElement('a'); link.download = `Album2026_${filtroActual}_${Date.now()}.png`;
-    link.href = globalCanvasUrl; link.click();
+
+function agruparNumeros(nums, esFWC) {
+    if (nums.length === 0) return "";
+    let rangos = []; let inicio = nums[0]; let fin = nums[0];
+    const fmt = (n) => (esFWC && n < 10) ? '0' + n : n;
+    for (let i = 1; i < nums.length; i++) {
+        if (nums[i] === fin + 1) fin = nums[i];
+        else { rangos.push(inicio === fin ? fmt(inicio) : `${fmt(inicio)}-${fmt(fin)}`); inicio = nums[i]; fin = nums[i]; }
+    }
+    rangos.push(inicio === fin ? fmt(inicio) : `${fmt(inicio)}-${fmt(fin)}`);
+    return rangos.join(', ');
 }
 
-// --- NUEVO: MODO DÍA DE INTERCAMBIO ---
+// NUEVA FUNCIÓN SOLICITADA: MODO INTERCAMBIO (Sin palabra "Día")
+function renderizarGrillaIntercambio() {
+    const grid = document.getElementById('exchange-grid');
+    grid.innerHTML = ''; grid.style.display = 'block';
+    albumData.forEach(seccion => {
+        const grupoDiv = document.createElement('div');
+        grupoDiv.style.marginBottom = '25px';
+        grupoDiv.innerHTML = `<h2 style="color: var(--primary); font-size: 1.1rem; border-bottom: 2px solid var(--primary); padding-bottom: 5px; margin-bottom: 15px;">${seccion.grupo}</h2>`;
+        let hayRep = false;
+        seccion.paises.forEach(paisObj => {
+            const repetidasPais = [];
+            let inicio = 1, fin = 20; if (seccion.tipo === 'especial_fwc') { inicio = 0; fin = 19; } if (seccion.tipo === 'especial_coca') { inicio = 1; fin = 14; }
+            for (let i = inicio; i <= fin; i++) {
+                const key = `${paisObj.nombre}-E${i}`; const q = coleccion[key] || 0;
+                if (q > 1) {
+                    const cod = Object.keys(mapaCodigosFIFA).find(k => mapaCodigosFIFA[k] === paisObj.nombre);
+                    repetidasPais.push({ key, cod, num: (seccion.tipo === 'especial_fwc' && i < 10) ? '0'+i : i, qty: q });
+                }
+            }
+            if (repetidasPais.length > 0) {
+                hayRep = true;
+                const paisCont = document.createElement('div');
+                paisCont.style.marginBottom = '15px';
+                paisCont.innerHTML = `<div style="font-size: 0.9rem; font-weight: bold; margin-bottom: 8px; color: var(--text-main);">${paisObj.banderaHtml} ${paisObj.nombre}</div>`;
+                const miniGrid = document.createElement('div');
+                miniGrid.style.display = 'grid'; miniGrid.style.gridTemplateColumns = 'repeat(4, 1fr)'; miniGrid.style.gap = '8px';
+                repetidasPais.forEach(item => {
+                    const btn = document.createElement('button'); btn.className = 'estampa-btn repeated'; btn.style.height = '60px';
+                    btn.innerHTML = `<span style="font-size: 1.1rem; font-weight: 900;">${item.num}</span><span class="rep-badge" style="top:2px; right:2px; font-size: 0.7rem;">+${item.qty - 1}</span>`;
+                    btn.onclick = () => {
+                        if (coleccion[item.key] > 1) {
+                            coleccion[item.key]--; localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion));
+                            if (coleccion[item.key] === 1) btn.remove(); else btn.querySelector('.rep-badge').innerText = `+${coleccion[item.key] - 1}`;
+                            actualizarTodo();
+                        }
+                    };
+                    miniGrid.appendChild(btn);
+                });
+                paisCont.appendChild(miniGrid); grupoDiv.appendChild(paisCont);
+            }
+        });
+        if (hayRep) grid.appendChild(grupoDiv);
+    });
+    if (grid.children.length === 0) grid.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">No tienes repetidas disponibles.</div>';
+}
+
 function toggleModoIntercambio() {
     modoIntercambioActivo = !modoIntercambioActivo;
-    
-    // Ocultar/Mostrar UI Principal
     document.getElementById('album-container').classList.toggle('hidden', modoIntercambioActivo);
     document.querySelector('.controls-row').classList.toggle('hidden', modoIntercambioActivo);
     document.querySelector('.filter-bar').classList.toggle('hidden', modoIntercambioActivo);
-    
-    const scannerWrap = document.getElementById('scanner-container-wrapper');
-    if (modoIntercambioActivo) {
-        if (scannerWrap) scannerWrap.classList.add('hidden');
-    } else {
-        if (scannerWrap && filtroActual === 'repetidas') scannerWrap.classList.remove('hidden');
-    }
-
     const exchangeCont = document.getElementById('exchange-mode-container');
-    if (modoIntercambioActivo) {
-        if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar();
-        exchangeCont.classList.remove('hidden');
-        renderizarGrillaIntercambio();
-    } else {
-        exchangeCont.classList.add('hidden');
-        actualizarTodo(); 
-    }
+    if (modoIntercambioActivo) { if (document.getElementById('sidebar').classList.contains('open')) toggleSidebar(); exchangeCont.classList.remove('hidden'); renderizarGrillaIntercambio(); } else { exchangeCont.classList.add('hidden'); actualizarTodo(); }
 }
 
-function renderizarGrillaIntercambio() {
-    const grid = document.getElementById('exchange-grid');
-    grid.innerHTML = '';
-    
-    const repetidas = [];
-    estructuraCruda.forEach(grupo => {
-        grupo.p.forEach(paisNombre => {
-            const codigoFIFA = Object.keys(mapaCodigosFIFA).find(k => mapaCodigosFIFA[k] === paisNombre);
-            let inicio = 1, fin = 20;
-            if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; }
-            if (grupo.t === 'especial_coca') { inicio = 1; fin = 14; }
-            
-            for (let i = inicio; i <= fin; i++) {
-                const key = `${paisNombre}-E${i}`;
-                const q = coleccion[key] || 0;
-                if (q > 1) {
-                    let numDisplay = (grupo.t === 'especial_fwc' && i < 10) ? '0'+i : i;
-                    repetidas.push({ key, cod: codigoFIFA, num: numDisplay, qty: q });
-                }
-            }
-        });
-    });
-
-    if (repetidas.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px; font-weight: bold; background: var(--card-bg); border-radius: 8px;">No tienes estampas repetidas disponibles.</div>';
-        return;
-    }
-
-    repetidas.forEach(item => {
-        const btn = document.createElement('button');
-        btn.className = 'estampa-btn repeated';
-        btn.style.height = '80px';
-        btn.style.display = 'flex';
-        btn.style.flexDirection = 'column';
-        btn.style.justifyContent = 'center';
-        btn.style.alignItems = 'center';
-        
-        btn.innerHTML = `
-            <span style="font-size: 0.8rem; color: #000; opacity: 0.6; font-weight: 800; letter-spacing: 1px;">${item.cod}</span>
-            <span style="font-size: 1.6rem; font-weight: 900; line-height: 1.1;">${item.num}</span>
-            <span class="rep-badge" style="font-size: 0.85rem; padding: 2px 5px; bottom: 6px; right: 6px; top: auto;">+${item.qty - 1}</span>
-        `;
-        
-        btn.onclick = () => {
-            if (coleccion[item.key] > 1) {
-                coleccion[item.key]--;
-                localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion));
-                
-                if (coleccion[item.key] === 1) {
-                    btn.remove();
-                    if (grid.children.length === 0) {
-                        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 30px; font-weight: bold; background: var(--card-bg); border-radius: 8px;">¡Te quedaste sin repetidas!</div>';
-                    }
-                } else {
-                    btn.querySelector('.rep-badge').innerText = `+${coleccion[item.key] - 1}`;
-                }
-                actualizarTodo(); // Mantiene las estadísticas del header actualizadas en tiempo real
-            }
-        };
-        grid.appendChild(btn);
-    });
-}
-
-// --- NUEVO: CALCULADORA DE COSTO RESTANTE ---
 function calcularCostoFaltante() {
     toggleSidebar();
-    
-    let faltantesNormales = 0;
-    const COSTO_POR_ESTAMPA = 3.57;
-
-    estructuraCruda.forEach(grupo => {
-        if (grupo.t === 'especial_coca') return;
-        
-        grupo.p.forEach(paisNombre => {
-            let inicio = 1, fin = 20;
-            if (grupo.t === 'especial_fwc') { inicio = 0; fin = 19; }
-            
-            for (let i = inicio; i <= fin; i++) {
-                const key = `${paisNombre}-E${i}`;
-                const cantidad = coleccion[key] || 0;
-                
-                if (cantidad === 0) {
-                    faltantesNormales++;
-                }
-            }
+    let faltantesNormales = 0; const COSTO = 3.57;
+    estructuraCruda.forEach(g => {
+        if (g.t === 'especial_coca') return;
+        g.p.forEach(p => {
+            let inicio = 1, fin = 20; if (g.t === 'especial_fwc') { inicio = 0; fin = 19; }
+            for (let i = inicio; i <= fin; i++) if ((coleccion[`${p}-E${i}`] || 0) === 0) faltantesNormales++;
         });
     });
-
-    if (faltantesNormales === 0) {
-        alert("¡Felicidades! Ya tienes todas las estampas normales. Solo te falta preocuparte por las de Coca-Cola (si es que aún te faltan).");
-        return;
-    }
-
-    const costoEstimado = (faltantesNormales * COSTO_POR_ESTAMPA).toFixed(2);
-    
-    alert(`📊 INFORME DE ÁLBUM:\n\nTe faltan ${faltantesNormales} estampas (sin contar las especiales de Coca-Cola).\n\n💸 Dinero estimado necesario: $${costoEstimado} MXN.`);
+    alert(faltantesNormales === 0 ? "¡Ya tienes todas!" : `Te faltan ${faltantesNormales} estampas. Costo est: $${(faltantesNormales * COSTO).toFixed(2)} MXN.`);
 }
 
-inicializarTema();
-actualizarTodo();
+function exportarColeccion() {
+    toggleSidebar();
+    try {
+        const agrupado = {};
+        for (let key in coleccion) {
+            let parts = key.split('-E'); let pais = parts[0]; let num = parts[1];
+            let code = Object.keys(mapaCodigosFIFA).find(c => mapaCodigosFIFA[c] === pais) || pais;
+            if (!agrupado[code]) agrupado[code] = [];
+            agrupado[code].push(coleccion[key] === 1 ? num : `${num}.${coleccion[key]}`);
+        }
+        let arrString = []; for (let code in agrupado) arrString.push(`${code}:${agrupado[code].join(',')}`);
+        prompt("Copia este código:", btoa(arrString.join(';')));
+    } catch (e) { alert("Error al exportar."); }
+}
+
+function importarColeccion() {
+    toggleSidebar();
+    const codigo = prompt("Pega aquí el código que te enviaron:");
+    if (!codigo) return;
+    try {
+        const str = atob(codigo); const nuevaColeccion = {};
+        str.split(';').forEach(bloque => {
+            if (!bloque) return;
+            let partes = bloque.split(':'); let code = partes[0]; let pais = mapaCodigosFIFA[code] || code;
+            partes[1].split(',').forEach(stamp => {
+                let sP = stamp.split('.');
+                nuevaColeccion[`${pais}-E${sP[0]}`] = sP.length > 1 ? parseInt(sP[1], 10) : 1;
+            });
+        });
+        if (confirm("⚠️ ATENCIÓN: Esto reemplazará tu álbum actual con la nueva información. ¿Estás seguro?")) { coleccion = nuevaColeccion; localStorage.setItem('figuritas_core_2026', JSON.stringify(coleccion)); actualizarTodo(); alert("¡Colección actualizada y repintada al instante!"); }
+    } catch (e) { alert("❌ El código es inválido. Asegúrate de copiarlo completo, sin espacios al inicio o al final."); }
+}
+
+inicializarTema(); actualizarTodo();
