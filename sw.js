@@ -1,5 +1,5 @@
-// Avanzamos a la versión v9 para inyectar la actualización automática y el nuevo compresor
-const CACHE_NAME = 'album-v9';
+// Avanzamos a la versión v8 para inyectar la calculadora de costo restante
+const CACHE_NAME = 'album-v8';
 const ARCHIVOS = [
   './',
   './index.html',
